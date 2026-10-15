@@ -47,8 +47,17 @@ Connector URL: `https://mcp.slack.com/mcp`
     Secret**.
   </Step>
   <Step title="Add the redirect URL">
-    Under **OAuth & Permissions → Redirect URLs**, add the **redirect URI** the Hub
-    shows you. Match it exactly, with no trailing slash.
+    Under **OAuth & Permissions → Redirect URLs**, add:
+
+    ```
+    https://api.viorant.ai/oauth/connector/callback
+    ```
+
+    Match it exactly, with no trailing slash. That is the production redirect.
+    `vio connect` prints the URL it will actually send, under "Add this exact URL to
+    the provider's Authorized redirect URIs:". The printed line matches the URL above
+    unless this machine's `control_url` is overridden. The Hub shows the same URL in
+    connector setup.
   </Step>
   <Step title="Enable MCP">
     Under **Agents & AI Apps**, find **Model Context Protocol** and turn it on.
@@ -66,3 +75,16 @@ Connector URL: `https://mcp.slack.com/mcp`
     access in your browser.
   </Step>
 </Steps>
+
+## From the CLI
+
+Add these to `.vio/.env.connectors`, then run `vio connect`. Leave the secret out of
+`agent.vio`.
+
+```
+SLACK_OAUTH_CLIENT_ID=
+SLACK_OAUTH_CLIENT_SECRET=
+```
+
+`vio docs connectors slack` prints this guide. `vio connectors slack` and the
+`vio connect` prompt point here.
