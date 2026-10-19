@@ -87,20 +87,61 @@ vio install: could not write /Users/you/.zshenv; add this line yourself: export 
 
 ## Windows
 
-There is no installer script for Windows yet. Download the file and check its checksum
-in PowerShell:
+There is no installer script for Windows yet. Paste this whole block into Windows PowerShell
+(5.1 or later). It makes the same two checks as the macOS and Linux installer, in order:
+the sha256 checksum, then the Cloud KMS signature, verified with Node's `crypto.verify`
+against the pinned release key. If either check fails, the block stops with "Nothing was
+installed." and does not run `vio.js`, even when it is pasted line by line:
 
 ```powershell
+& {
+$ErrorActionPreference = 'Stop'
 $v = (Invoke-RestMethod https://dl.viorant.ai/cli/latest.json).version
 Invoke-WebRequest "https://dl.viorant.ai/cli/vio-$v.js" -OutFile vio.js
 Invoke-WebRequest "https://dl.viorant.ai/cli/vio-$v.js.sha256" -OutFile vio.js.sha256
-(Get-FileHash vio.js -Algorithm SHA256).Hash.ToLower()   # must equal the first field of vio.js.sha256
+Invoke-WebRequest "https://dl.viorant.ai/cli/vio-$v.js.sig" -OutFile vio.js.sig
+$expected = ((Get-Content vio.js.sha256 -Raw) -split '\s+')[0].ToLower()
+$actual = (Get-FileHash vio.js -Algorithm SHA256).Hash.ToLower()
+if ($expected -ne $actual) { throw "checksum mismatch. Nothing was installed." }
+# BEGIN vio-release-pubkey (synced from scripts/vio-release-pubkey.pem by `npm run sync:pubkey`)
+$pubkey = @'
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqBMZIAQMlHrrVAxBjTYqcBljyNHz
+0MRgxuGlzvBUdnGYu83jGTZSkS6Nw8OeMQNb32vKXaVjclnjXWVpT6OdoA==
+-----END PUBLIC KEY-----
+'@
+# END vio-release-pubkey
+$env:VIO_INSTALL_SIGNING_PUBKEY = $pubkey
+$verify = @'
+const { verify } = require('node:crypto');
+const { readFileSync } = require('node:fs');
+const [dataPath, sigPath] = process.argv.slice(1);
+try {
+  const data = readFileSync(dataPath);
+  const sig = readFileSync(sigPath);
+  const pubkey = process.env.VIO_INSTALL_SIGNING_PUBKEY;
+  if (!verify('sha256', data, pubkey, sig)) {
+    console.error('signature verification FAILED');
+    process.exit(1);
+  }
+  console.log('signature verified');
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(2);
+}
+'@
+node -e $verify vio.js vio.js.sig
+if ($LASTEXITCODE -ne 0) { throw "signature verification FAILED. Nothing was installed." }
 node vio.js --version
+}
 ```
+
+Keep the block as one paste. The `& { … }` wrapper and `$ErrorActionPreference = 'Stop'`
+are what make it stop at the first failure.
 
 Run commands as `node vio.js <command>`. To update on Windows, repeat these steps, or run
 `node vio.js update`: with no `install.sh` to run, it downloads the release, checks the
-sha256 checksum and replaces `vio.js`.
+sha256 checksum and the signature, and replaces `vio.js` only if both pass.
 
 ## Update
 
@@ -185,8 +226,9 @@ cosign verify-blob --bundle vio-<version>.js.sigstore.json \
   vio-<version>.js
 ```
 
-**Windows checks the checksum only**, not the signature: the PowerShell steps above and
-`vio update` on Windows both stop at the sha256.
+**Windows makes the same two checks.** The PowerShell block above and `vio update` on
+Windows both verify the sha256 checksum and then the signature, against the same pinned
+key, and install nothing if either fails.
 
 ## Then
 
