@@ -66,10 +66,35 @@ Sentinel does **not** load analytics until you accept the consent banner. Autoca
 | Event | Property | Type | What it means |
 | --- | --- | --- | --- |
 | `$pageview` | `$current_url` | string | The page **type** as a route template (for example `/agents/:slug`), prefixed with the site origin. It never includes an agent name, query string or hash. Unknown routes are sent as `/404`. |
+| `$pageview` | `$pathname` | string | The same route template without the origin (for example `/agents/:slug`). |
 | `agent_viewed` | — | — | Fired when an agent detail page is opened. No properties. |
 | `agent_logs_opened` | — | — | Fired when deployment logs are opened. No properties. |
 | `credits_topup_started` | `product_id` | string | Fired when a credit top-up checkout starts. The product id only — not an amount you typed. |
 | `plan_checkout_started` | `plan` | string | Fired when a plan subscription checkout starts. The plan id enum only. |
+
+### Every Sentinel event also includes
+
+PostHog's browser library attaches coarse device and session metadata. Sentinel allows only this fixed list through its scrubber; everything else is dropped.
+
+| Property | Type | What it means |
+| --- | --- | --- |
+| `$os` | string | Operating system name. |
+| `$os_version` | string | Operating system version. |
+| `$browser` | string | Browser name. |
+| `$browser_version` | string | Browser version. |
+| `$device_type` | string | Device category (for example desktop or mobile). |
+| `$screen_height` | number | Screen height in pixels. |
+| `$screen_width` | number | Screen width in pixels. |
+| `$viewport_height` | number | Viewport height in pixels. |
+| `$viewport_width` | number | Viewport width in pixels. |
+| `$timezone` | string | IANA timezone name. |
+| `$timezone_offset` | number | Offset from UTC in minutes. |
+| `$browser_language` | string | Browser language tag. |
+| `$lib` | string | PostHog client library name. |
+| `$lib_version` | string | PostHog client library version. |
+| `$device_id` | string | Random device id assigned by PostHog for this browser. |
+| `$session_id` | string | Random session id for this visit. |
+| `$window_id` | string | Random id for this browser tab or window. |
 
 Before any event is sent, a scrubber removes referrer fields and rewrites URL-shaped properties to the template form.
 
@@ -85,7 +110,7 @@ These events are captured on Viorant's servers when you use the product. They ar
 | `account.signed_in` | `method` | enum | How the session started: `google`, `github`, or `email`. |
 | `deploy.completed` | `outcome` | enum | Whether the deploy finished successfully: `ok` or `failed`. |
 | `deploy.completed` | `error_class` | string (optional) | Present when `outcome` is `failed`; a short error slug, not a message. |
-| `deployment.first_run` | — | — | The first successful run of a deployment. No extra properties. |
+| `deployment.first_run` | — | — | The first run recorded for a deployment, whatever its outcome. No extra properties. |
 | `schedule.created` | — | — | A run schedule was created for a deployment. No extra properties. |
 | `credits.spent` | `micro_usd` | integer | Credits consumed, in micro-USD (millionths of a dollar). |
 | `credits.spent` | `source` | enum | Which surface spent the credits: `run`, `assistant`, or `gateway`. |
