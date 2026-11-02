@@ -17,7 +17,7 @@ Each product below has its own rules; you can turn off `vio` at any time, and Se
 
 | Event | Property | Type | What it means |
 | --- | --- | --- | --- |
-| `cli.command_completed` | `command` | string | The command and at most one subcommand from `vio`'s fixed list (for example `deploy`, `connectors tools`), never text you typed. Unknown commands are `unknown`; the bare shell is `shell`. |
+| `cli.command_completed` | `command` | string | The command and at most one subcommand from `vio`'s fixed list (for example `deploy`, `connectors tools`), never text you typed. Unknown commands are `unknown`; the bare shell is `shell`; a `-p` run is `print`. |
 | `cli.command_completed` | `exit_code` | integer | The process exit code when the command finished. |
 | `cli.command_completed` | `duration_ms` | number | How long the run took, in milliseconds. |
 | `cli.command_completed` | `interactive` | boolean | Whether a person was at an interactive terminal. Scripts and coding agents send `false`. |
@@ -71,10 +71,13 @@ Sentinel does **not** load analytics until you accept the consent banner. Autoca
 | `agent_logs_opened` | — | — | Fired when deployment logs are opened. No properties. |
 | `credits_topup_started` | `product_id` | string | Fired when a credit top-up checkout starts. The product id only — not an amount you typed. |
 | `plan_checkout_started` | `plan` | string | Fired when a plan subscription checkout starts. The plan id enum only. |
+| `$identify` | — | — | Sent when you sign in after accepting the banner. It carries your Viorant user id. |
+
+When you are signed in, Sentinel events carry your Viorant user id, never your email or name, and signing out resets it.
 
 ### Every Sentinel event also includes
 
-PostHog's browser library attaches coarse device and session metadata. Sentinel allows only this fixed list through its scrubber; everything else is dropped.
+PostHog's browser library attaches coarse device and session metadata. Sentinel's scrubber keeps only the properties in this table, and `product_id` and `plan` on the checkout events above. Everything else is dropped.
 
 | Property | Type | What it means |
 | --- | --- | --- |
@@ -90,11 +93,21 @@ PostHog's browser library attaches coarse device and session metadata. Sentinel 
 | `$timezone` | string | IANA timezone name. |
 | `$timezone_offset` | number | Offset from UTC in minutes. |
 | `$browser_language` | string | Browser language tag. |
+| `$browser_language_prefix` | string | The language part of `$browser_language`, such as `en`. |
 | `$lib` | string | PostHog client library name. |
 | `$lib_version` | string | PostHog client library version. |
 | `$device_id` | string | Random device id assigned by PostHog for this browser. |
 | `$session_id` | string | Random session id for this visit. |
 | `$window_id` | string | Random id for this browser tab or window. |
+| `distinct_id` | string | Your Viorant user id once you are signed in. Before that, a random browser id. |
+| `$user_id` | string | Your Viorant user id when the event is identified. |
+| `$anon_distinct_id` | string | The random browser id from before you signed in. |
+| `$is_identified` | boolean | Whether this event is tied to your signed-in user id. |
+| `$process_person_profile` | boolean | Whether PostHog may attach this event to a person profile. |
+| `$insert_id` | string | A random id for this one event, so a duplicate can be dropped. |
+| `token` | string | The Sentinel project's public PostHog key. It is not a user secret. |
+| `$current_url` | string | The route template with the site origin. The scrubber sets this on every event. |
+| `$pathname` | string | The route template without the origin. The scrubber sets this on every event. |
 
 Before any event is sent, a scrubber removes referrer fields and rewrites URL-shaped properties to the template form.
 
