@@ -13,6 +13,10 @@ Each product below has its own rules; you can turn off `vio` at any time, and Se
 
 `vio` sends usage telemetry **on by default** (opt-out). Each finished command produces one event, batched to the control plane at `POST /telemetry/events` after `vio` exits.
 
+<Note>
+  Telemetry starts with the `vio` release after 1.0.7. Version 1.0.7 and earlier send nothing and don't have `vio telemetry`.
+</Note>
+
 ### Events
 
 | Event | Property | Type | What it means |
@@ -33,6 +37,7 @@ Each product below has its own rules; you can turn off `vio` at any time, and Se
 | `user_id` | UUID (optional) | Your Viorant account id when you are signed in. |
 | `client` | `"cli"` | Marks the sender as the CLI. |
 | `client_version` | string | The installed `vio` version. |
+| `environment` | `"dev"` or `"prod"` | The Viorant environment that received the event. Control adds this to every `vio` event it forwards. |
 
 <Note>
   The first-run notice appears once in an interactive terminal. It is **not** printed for
@@ -108,6 +113,7 @@ PostHog's browser library attaches coarse device and session metadata. Sentinel'
 | `token` | string | The Sentinel project's public PostHog key. It is not a user secret. |
 | `$current_url` | string | The route template with the site origin. The scrubber sets this on every event. |
 | `$pathname` | string | The route template without the origin. The scrubber sets this on every event. |
+| `environment` | `"dev"` or `"prod"` | The Viorant environment this site is running in. Set on every event. |
 
 Before any event is sent, a scrubber removes referrer fields and rewrites URL-shaped properties to the template form.
 
@@ -127,6 +133,8 @@ These events are captured on Viorant's servers when you use the product. They ar
 | `schedule.created` | — | — | A run schedule was created for a deployment. No extra properties. |
 | `credits.spent` | `micro_usd` | integer | Credits consumed, in micro-USD (millionths of a dollar). |
 | `credits.spent` | `source` | enum | Which surface spent the credits: `run`, `assistant`, or `gateway`. |
+
+Every server event also carries `environment` (`dev` or `prod`), the Viorant environment that recorded it.
 
 We process these on **legitimate interest** so we can operate billing, quotas and reliability. See the [privacy policy](https://viorant.ai/privacy) for the full basis and your rights.
 
@@ -150,7 +158,7 @@ Events go to **PostHog** in the **US** region (`https://us.i.posthog.com`).
 | --- | --- |
 | `vio` CLI, control server events and Sentinel (browser) | One shared project |
 
-Dev and production use different project keys; the split is the same.
+Development and production send to the same project. Every event carries `environment` (`dev` or `prod`), so the two stay apart.
 
 ## The Hub
 
